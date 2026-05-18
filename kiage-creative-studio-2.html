@@ -445,7 +445,8 @@ async function generatePrompts() {
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
-    const parsed = JSON.parse(data.content[0].text);
+    const raw = data.content[0].text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(raw);
     parsed.prompts.forEach((p, i) => {
       if (i < slotCount) {
         document.getElementById('prompt-' + i).value = p;
@@ -497,7 +498,7 @@ async function generateImage(i, prompt, key) {
     const res = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-      body: JSON.stringify({ model: 'gpt-image-1', prompt, n: 1, size: '1024x1792' })
+      body: JSON.stringify({ model: 'gpt-image-1', prompt, n: 1, size: '1024x1536' })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
