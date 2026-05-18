@@ -523,13 +523,13 @@ async function generateVideo(i, prompt, key) {
   setSlotStatus(i, 'loading', 'Gesendet...');
   const r = document.getElementById('result-' + i);
   try {
-    const res = await fetch('https://queue.fal.run/fal-ai/seedance-v1-lite/image-to-video', {
+    const res = await fetch('https://queue.fal.run/fal-ai/bytedance/seedance/v1/lite/text-to-video', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + key },
-      body: JSON.stringify({ prompt, duration: 5, aspect_ratio: '9:16' })
+      body: JSON.stringify({ prompt, duration: '5', aspect_ratio: '9:16', resolution: '720p' })
     });
     const data = await res.json();
-    if (!data.request_id) throw new Error('Kein Request ID von fal.ai — prüfe deinen Key');
+    if (!data.request_id) throw new Error('Kein Request ID von fal.ai — ' + JSON.stringify(data));
     r.textContent = 'Video wird verarbeitet (1-2 Min)...';
     r.style.display = 'block';
     setSlotStatus(i, 'loading', 'Verarbeitet...');
@@ -537,7 +537,7 @@ async function generateVideo(i, prompt, key) {
     let attempts = 0;
     while (attempts < 40) {
       await new Promise(resolve => setTimeout(resolve, 4000));
-      const poll = await fetch(`https://queue.fal.run/fal-ai/seedance-v1-lite/requests/${data.request_id}`, {
+      const poll = await fetch(`https://queue.fal.run/fal-ai/bytedance/seedance/v1/lite/text-to-video/requests/${data.request_id}`, {
         headers: { 'Authorization': 'Key ' + key }
       });
       const pd = await poll.json();
@@ -576,6 +576,15 @@ document.getElementById('mp-list').addEventListener('click', function(e) {
   if (action === 'activate') activatePreset(id);
   if (action === 'edit') editPreset(id);
   if (action === 'delete') deletePreset(id);
+});
+
+const keyIds = ['anthropic-key', 'openai-key', 'fal-key', 'eleven-key'];
+keyIds.forEach(id => {
+  const saved = localStorage.getItem('cs_' + id);
+  if (saved) document.getElementById(id).value = saved;
+  document.getElementById(id).addEventListener('input', function() {
+    localStorage.setItem('cs_' + id, this.value);
+  });
 });
 </script>
 </body>
