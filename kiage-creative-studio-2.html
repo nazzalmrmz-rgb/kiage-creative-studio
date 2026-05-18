@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creative Studio</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0e0e0f;
+  --bg2: #18181b;
+  --bg3: #232328;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.15);
+  --text: #f0f0f0;
+  --text2: #a0a0a8;
+  --text3: #606068;
+  --accent: #9B6FDF;
+  --accent-bg: rgba(155,111,223,0.12);
+  --accent-dark: #7B4FBF;
+  --success: #4ade80;
+  --danger: #f87171;
+  --radius: 10px;
+  --radius-lg: 14px;
+}
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.5; min-height: 100vh; }
+.app { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+
+/* SIDEBAR */
+.sidebar { background: var(--bg2); border-right: 1px solid var(--border); padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-y: auto; }
+.logo { font-size: 17px; font-weight: 600; letter-spacing: -0.5px; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.logo span { color: var(--accent); }
+.logo small { display: block; font-size: 11px; font-weight: 400; color: var(--text3); margin-top: 2px; }
+
+.sidebar-section { display: flex; flex-direction: column; gap: 8px; }
+.sidebar-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); }
+
+/* MASTERPROMPTS */
+.mp-list { display: flex; flex-direction: column; gap: 6px; }
+.mp-item { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; cursor: pointer; transition: all 0.15s; position: relative; }
+.mp-item:hover { border-color: var(--border2); }
+.mp-item.active { border-color: var(--accent); background: var(--accent-bg); }
+.mp-item-name { font-size: 13px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.mp-item-name .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); }
+.mp-item.active .dot { background: var(--accent); }
+.mp-item-desc { font-size: 11px; color: var(--text3); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-actions { display: flex; gap: 4px; margin-top: 4px; }
+.mp-btn { font-size: 11px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text2); cursor: pointer; }
+.mp-btn:hover { background: var(--bg2); }
+.mp-btn.danger:hover { color: var(--danger); border-color: var(--danger); }
+.add-mp-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border-radius: var(--radius); border: 1px dashed var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-size: 13px; width: 100%; transition: all 0.15s; }
+.add-mp-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* KEYS */
+.key-list { display: flex; flex-direction: column; gap: 6px; }
+.key-row { display: flex; flex-direction: column; gap: 3px; }
+.key-row label { font-size: 11px; color: var(--text3); }
+.key-row input { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; color: var(--text); font-size: 12px; width: 100%; outline: none; }
+.key-row input:focus { border-color: var(--accent); }
+
+/* MAIN */
+.main { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-y: auto; }
+.main-header { display: flex; align-items: center; justify-content: space-between; }
+.main-title { font-size: 20px; font-weight: 600; letter-spacing: -0.5px; }
+.active-preset-badge { font-size: 12px; background: var(--accent-bg); color: var(--accent); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(155,111,223,0.3); }
+
+/* CARDS */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.125rem; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); }
+
+/* TYPES */
+.type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.type-btn { padding: 10px 8px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg3); color: var(--text2); cursor: pointer; font-size: 12px; text-align: center; transition: all 0.15s; line-height: 1.4; }
+.type-btn:hover { border-color: var(--border2); color: var(--text); }
+.type-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.type-icon { font-size: 20px; margin-bottom: 4px; }
+
+/* SCRIPT */
+textarea { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; color: var(--text); font-size: 13px; width: 100%; outline: none; resize: vertical; font-family: inherit; line-height: 1.6; }
+textarea:focus { border-color: var(--accent); }
+textarea::placeholder { color: var(--text3); }
+
+/* REF IMAGES */
+.ref-upload { border: 1px dashed var(--border2); border-radius: var(--radius); padding: 14px; text-align: center; cursor: pointer; position: relative; transition: all 0.15s; }
+.ref-upload:hover { border-color: var(--accent); background: var(--accent-bg); }
+.ref-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.ref-upload-text { font-size: 12px; color: var(--text3); margin-top: 4px; }
+.ref-thumbs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.ref-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border); }
+
+/* SLOTS */
+.slot-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.count-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border2); background: var(--bg3); color: var(--text); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; line-height: 1; transition: all 0.15s; }
+.count-btn:hover { border-color: var(--accent); color: var(--accent); }
+.count-num { font-size: 16px; font-weight: 600; min-width: 24px; text-align: center; }
+.slots-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.slot-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.slot-head { display: flex; align-items: center; justify-content: space-between; }
+.slot-num { font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-bg); padding: 2px 9px; border-radius: 10px; }
+.slot-status { font-size: 11px; color: var(--text3); }
+.slot-status.done { color: var(--success); }
+.slot-status.loading { color: var(--accent); }
+.slot-status.error { color: var(--danger); }
+.slot-prompt { min-height: 72px; font-size: 12px; }
+.slot-result { display: none; font-size: 11px; color: var(--text2); background: var(--bg2); border-radius: 8px; padding: 8px; line-height: 1.6; }
+.slot-result a { color: var(--accent); }
+.slot-img { display: none; width: 100%; border-radius: 8px; margin-top: 4px; }
+.slot-video { display: none; width: 100%; border-radius: 8px; margin-top: 4px; }
+.dl-btn { display: none; font-size: 11px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent-bg); color: var(--accent); cursor: pointer; width: fit-content; text-decoration: none; }
+
+/* BUTTONS */
+.btn-row { display: flex; gap: 10px; }
+.btn { padding: 11px 20px; border-radius: var(--radius); border: none; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 7px; transition: all 0.15s; }
+.btn-primary { background: var(--accent); color: #fff; flex: 1; justify-content: center; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border2); flex: 1; justify-content: center; }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ERROR */
+.error-bar { display: none; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: var(--danger); }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 1.5rem; width: 480px; display: flex; flex-direction: column; gap: 12px; }
+.modal-title { font-size: 16px; font-weight: 600; }
+.modal-field { display: flex; flex-direction: column; gap: 5px; }
+.modal-field label { font-size: 12px; color: var(--text2); }
+.modal-field input, .modal-field textarea { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 13px; outline: none; font-family: inherit; }
+.modal-field input:focus, .modal-field textarea:focus { border-color: var(--accent); }
+.modal-field textarea { min-height: 120px; resize: vertical; }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+.modal-btn { padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border2); background: var(--bg3); color: var(--text); cursor: pointer; font-size: 13px; }
+.modal-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.modal-btn:hover { opacity: 0.85; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      Creative<span>Studio</span>
+      <small>by Kiage × AI</small>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Masterprompts</div>
+      <div class="mp-list" id="mp-list"></div>
+      <button class="add-mp-btn" onclick="openAddModal()">+ Neuer Masterprompt</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">API Keys</div>
+      <div class="key-list">
+        <div class="key-row">
+          <label>Anthropic Key</label>
+          <input type="password" id="anthropic-key" placeholder="sk-ant-..." />
+        </div>
+        <div class="key-row">
+          <label>OpenAI Key (Bilder)</label>
+          <input type="password" id="openai-key" placeholder="sk-proj-..." />
+        </div>
+        <div class="key-row">
+          <label>fal.ai Key (Videos)</label>
+          <input type="password" id="fal-key" placeholder="fal-..." />
+        </div>
+        <div class="key-row">
+          <label>ElevenLabs (optional)</label>
+          <input type="password" id="eleven-key" placeholder="..." />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="main-header">
+      <div class="main-title">Creative Generator</div>
+      <div class="active-preset-badge" id="active-badge">Kein Preset aktiv</div>
+    </div>
+
+    <!-- TYP -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">Creative Typ</div></div>
+      <div class="type-grid">
+        <button class="type-btn active" onclick="setType('video')" id="type-video">
+          <div class="type-icon">🎬</div>Video Ad
+        </button>
+        <button class="type-btn" onclick="setType('image')" id="type-image">
+          <div class="type-icon">🖼️</div>Bild Ad
+        </button>
+        <button class="type-btn" onclick="setType('slideshow')" id="type-slideshow">
+          <div class="type-icon">📱</div>Slideshow
+        </button>
+        <button class="type-btn" onclick="setType('broll')" id="type-broll">
+          <div class="type-icon">🎥</div>B-Roll
+        </button>
+      </div>
+    </div>
+
+    <!-- SKRIPT -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">Skript / Konzept</div></div>
+      <textarea id="script" rows="4" placeholder="Beschreibe die Szene — z.B. 'Attraktiver Mann betritt einen luxuriösen Parfüm-Store in Berlin, nimmt den Flakon vom Regal, riecht daran, lächelt, dreht ihn zur Kamera. Text einblenden: Der gleiche Duft. 90% günstiger.'"></textarea>
+    </div>
+
+    <!-- REFERENZBILDER -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">Referenzbilder (Produkt / Kulisse)</div></div>
+      <div class="ref-upload">
+        <input type="file" accept="image/*" multiple onchange="handleRefImages(event)" />
+        <div style="font-size:24px;">📎</div>
+        <div class="ref-upload-text">Produktfotos hochladen — Flakon, Kulisse, Mood</div>
+      </div>
+      <div class="ref-thumbs" id="ref-thumbs"></div>
+    </div>
+
+    <!-- SLOTS -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Creative Slots</div>
+        <div class="slot-controls">
+          <button class="count-btn" onclick="changeCount(-1)">−</button>
+          <span class="count-num" id="count-display">3</span>
+          <button class="count-btn" onclick="changeCount(1)">+</button>
+        </div>
+      </div>
+      <div class="slots-grid" id="slots-grid"></div>
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="generatePrompts()">✦ Prompts generieren</button>
+      <button class="btn btn-primary" id="gen-btn" onclick="generateAll()">▶ Alles generieren</button>
+    </div>
+    <div class="error-bar" id="error-bar"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Neuer Masterprompt</div>
+    <div class="modal-field">
+      <label>Name (z.B. "Kiage 104" oder "Frau Salbbe Öl 01")</label>
+      <input type="text" id="modal-name" placeholder="Kiage 104" />
+    </div>
+    <div class="modal-field">
+      <label>Flakon-Beschreibung (genau — Form, Farbe, Material, Label)</label>
+      <textarea id="modal-flakon" placeholder="Schlanker, rechteckiger Flakon aus klarem Glas mit mattem Gold-Verschluss. Label: 'KIAGE 104' in serifenloser weißer Schrift auf schwarzem Hintergrund. Circa 100ml Größe. Hochwertiger Look, Premium-Parfümerie-Stil..."></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Brand Context (Zielgruppe, Ton, Key Message)</label>
+      <textarea id="modal-brand" placeholder="Zielgruppe: Deutsche Männer 25-40, lifestyle-orientiert. Ton: selbstbewusst, luxuriös. Key Message: Gleicher Duft, 90% günstiger. Stets eine echte, attraktive Person in der Szene zeigen..."></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="closeModal()">Abbrechen</button>
+      <button class="modal-btn primary" onclick="savePreset()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let masterprompts = JSON.parse(localStorage.getItem('cs_prompts') || '[]');
+let activePresetId = null;
+let slotCount = 3;
+let activeType = 'video';
+let refImages = [];
+let editingId = null;
+
+if (masterprompts.length === 0) {
+  masterprompts = [
+    { id: 'kiage104', name: 'Kiage 104', flakon: 'Schlanker, eleganter Parfüm-Flakon, klares Glas, bordeauxroter Verschluss, Label "KIAGE 104" in serifenloser weißer Schrift. Premium-Look, ca. 100ml.', brand: 'D2C Luxus-Duft-Brand aus Berlin. Duftzwillinge von Designer-Parfüms. Zielgruppe: Deutsche Männer 25-40, smart shopper. Key Message: Gleicher Duft, 90% günstiger. Immer eine attraktive echte Person in der Szene.' }
+  ];
+  saveMPs();
+}
+
+function saveMPs() { localStorage.setItem('cs_prompts', JSON.stringify(masterprompts)); }
+
+function renderMPs() {
+  const list = document.getElementById('mp-list');
+  list.innerHTML = '';
+  masterprompts.forEach(mp => {
+    const div = document.createElement('div');
+    div.className = 'mp-item' + (mp.id === activePresetId ? ' active' : '');
+    div.dataset.id = mp.id;
+    div.innerHTML = `
+      <div class="mp-item-name"><span class="dot"></span>${mp.name}</div>
+      <div class="mp-item-desc">${mp.flakon.substring(0, 60)}...</div>
+      <div class="mp-actions">
+        <button class="mp-btn" data-action="activate" data-id="${mp.id}">Aktivieren</button>
+        <button class="mp-btn" data-action="edit" data-id="${mp.id}">Bearbeiten</button>
+        <button class="mp-btn danger" data-action="delete" data-id="${mp.id}">Löschen</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function activatePreset(id) {
+  activePresetId = id;
+  const mp = masterprompts.find(m => m.id === id);
+  document.getElementById('active-badge').textContent = mp ? '#' + mp.name : 'Kein Preset';
+  renderMPs();
+}
+
+function deletePreset(id) {
+  if (!confirm('Preset löschen?')) return;
+  masterprompts = masterprompts.filter(m => m.id !== id);
+  if (activePresetId === id) { activePresetId = null; document.getElementById('active-badge').textContent = 'Kein Preset aktiv'; }
+  saveMPs(); renderMPs();
+}
+
+function editPreset(id) {
+  editingId = id;
+  const mp = masterprompts.find(m => m.id === id);
+  document.getElementById('modal-title').textContent = 'Preset bearbeiten';
+  document.getElementById('modal-name').value = mp.name;
+  document.getElementById('modal-flakon').value = mp.flakon;
+  document.getElementById('modal-brand').value = mp.brand;
+  document.getElementById('modal').classList.add('open');
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Neuer Masterprompt';
+  document.getElementById('modal-name').value = '';
+  document.getElementById('modal-flakon').value = '';
+  document.getElementById('modal-brand').value = '';
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function savePreset() {
+  const name = document.getElementById('modal-name').value.trim();
+  const flakon = document.getElementById('modal-flakon').value.trim();
+  const brand = document.getElementById('modal-brand').value.trim();
+  if (!name || !flakon) { alert('Name und Flakon-Beschreibung sind Pflicht'); return; }
+  if (editingId) {
+    const mp = masterprompts.find(m => m.id === editingId);
+    mp.name = name; mp.flakon = flakon; mp.brand = brand;
+  } else {
+    masterprompts.push({ id: 'mp_' + Date.now(), name, flakon, brand });
+  }
+  saveMPs(); renderMPs(); closeModal();
+}
+
+function setType(t) {
+  activeType = t;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('type-' + t).classList.add('active');
+}
+
+function changeCount(d) {
+  slotCount = Math.max(1, Math.min(10, slotCount + d));
+  document.getElementById('count-display').textContent = slotCount;
+  renderSlots();
+}
+
+function renderSlots() {
+  const grid = document.getElementById('slots-grid');
+  while (grid.children.length > slotCount) grid.removeChild(grid.lastChild);
+  for (let i = grid.children.length; i < slotCount; i++) {
+    const card = document.createElement('div');
+    card.className = 'slot-card';
+    card.id = 'slot-' + i;
+    card.innerHTML = `
+      <div class="slot-head">
+        <span class="slot-num">Slot ${i + 1}</span>
+        <span class="slot-status" id="status-${i}">Bereit</span>
+      </div>
+      <textarea class="slot-prompt" id="prompt-${i}" placeholder="Prompt wird generiert oder manuell eingeben..."></textarea>
+      <div class="slot-result" id="result-${i}"></div>
+      <img class="slot-img" id="img-${i}" />
+      <video class="slot-video" id="vid-${i}" controls></video>
+      <a class="dl-btn" id="dl-${i}" download>⬇ Download</a>
+    `;
+    grid.appendChild(card);
+  }
+}
+
+function handleRefImages(e) {
+  Array.from(e.target.files).forEach(f => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      refImages.push({ name: f.name, data: ev.target.result });
+      const img = document.createElement('img');
+      img.src = ev.target.result;
+      img.className = 'ref-thumb';
+      document.getElementById('ref-thumbs').appendChild(img);
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-bar');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 6000);
+}
+
+function getActiveMP() {
+  if (!activePresetId) return null;
+  return masterprompts.find(m => m.id === activePresetId);
+}
+
+function buildMasterContext(mp) {
+  if (!mp) return '';
+  return `FLAKON: ${mp.flakon}\n\nBRAND CONTEXT: ${mp.brand}`;
+}
+
+async function generatePrompts() {
+  const key = document.getElementById('anthropic-key').value.trim();
+  if (!key) { showError('Anthropic Key fehlt'); return; }
+  const script = document.getElementById('script').value.trim();
+  if (!script) { showError('Bitte Skript / Konzept eingeben'); return; }
+  const mp = getActiveMP();
+  if (!mp) { showError('Bitte zuerst einen Masterprompt aktivieren'); return; }
+
+  const typeLabels = { video: 'Video Ad (9:16, 15-30 Sek, für TikTok/Reels)', image: 'Statisches Bild Ad (9:16)', slideshow: 'Slideshow-Serie (5-7 Bilder, 9:16)', broll: 'B-Roll Clip (9:16, 5-10 Sek, kein Sprecher)' };
+
+  for (let i = 0; i < slotCount; i++) {
+    setSlotStatus(i, 'loading', 'Generiert...');
+  }
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: `Du bist ein Creative Director für Performance Marketing. Erstelle präzise englische Prompts für KI-Bildgenerierung (DALL-E gpt-image-1) und Video-Generierung (Seedance via fal.ai). Antworte NUR mit validem JSON ohne Markdown: {"prompts": ["...", "..."]}`,
+        messages: [{
+          role: 'user',
+          content: `${buildMasterContext(mp)}\n\nSKRIPT/KONZEPT: ${script}\n\nCREATIVE TYP: ${typeLabels[activeType]}\n\nGeneriere exakt ${slotCount} verschiedene englische Prompts. Jeder Prompt:\n- Beschreibt eine attraktive echte Person in der Szene (konkret: Alter, Look, Kleidung)\n- Zeigt den Flakon EXAKT wie beschrieben im Masterprompt\n- Ist cinematic, professionell, 9:16 Format\n- Ist eine andere Variation/Szene\n- Endet mit: "photorealistic, 9:16 vertical format, cinematic lighting, premium ad quality"`
+        }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const parsed = JSON.parse(data.content[0].text);
+    parsed.prompts.forEach((p, i) => {
+      if (i < slotCount) {
+        document.getElementById('prompt-' + i).value = p;
+        setSlotStatus(i, 'done', '✓ Prompt bereit');
+      }
+    });
+  } catch(e) {
+    showError('Fehler: ' + e.message);
+    for (let i = 0; i < slotCount; i++) setSlotStatus(i, 'error', 'Fehler');
+  }
+}
+
+async function generateAll() {
+  const openaiKey = document.getElementById('openai-key').value.trim();
+  const falKey = document.getElementById('fal-key').value.trim();
+  const btn = document.getElementById('gen-btn');
+
+  if ((activeType === 'image' || activeType === 'slideshow') && !openaiKey) { showError('OpenAI Key fehlt'); return; }
+  if ((activeType === 'video' || activeType === 'broll') && !falKey) { showError('fal.ai Key fehlt'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Generiere...';
+
+  const tasks = [];
+  for (let i = 0; i < slotCount; i++) {
+    const prompt = document.getElementById('prompt-' + i).value.trim();
+    if (!prompt) continue;
+    if (activeType === 'image' || activeType === 'slideshow') {
+      tasks.push(generateImage(i, prompt, openaiKey));
+    } else {
+      tasks.push(generateVideo(i, prompt, falKey));
+    }
+  }
+  await Promise.allSettled(tasks);
+
+  btn.disabled = false;
+  btn.textContent = '▶ Alles generieren';
+}
+
+function setSlotStatus(i, cls, text) {
+  const el = document.getElementById('status-' + i);
+  el.className = 'slot-status ' + cls;
+  el.textContent = text;
+}
+
+async function generateImage(i, prompt, key) {
+  setSlotStatus(i, 'loading', 'Generiert...');
+  try {
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ model: 'gpt-image-1', prompt, n: 1, size: '1024x1792' })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const src = 'data:image/png;base64,' + data.data[0].b64_json;
+    const imgEl = document.getElementById('img-' + i);
+    imgEl.src = src;
+    imgEl.style.display = 'block';
+    const dlBtn = document.getElementById('dl-' + i);
+    dlBtn.href = src;
+    dlBtn.download = 'kiage-creative-slot' + (i+1) + '.png';
+    dlBtn.style.display = 'block';
+    setSlotStatus(i, 'done', '✓ Fertig');
+  } catch(e) {
+    setSlotStatus(i, 'error', 'Fehler');
+    const r = document.getElementById('result-' + i);
+    r.textContent = e.message;
+    r.style.display = 'block';
+  }
+}
+
+async function generateVideo(i, prompt, key) {
+  setSlotStatus(i, 'loading', 'Gesendet...');
+  const r = document.getElementById('result-' + i);
+  try {
+    const res = await fetch('https://queue.fal.run/fal-ai/seedance-v1-lite/image-to-video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + key },
+      body: JSON.stringify({ prompt, duration: 5, aspect_ratio: '9:16' })
+    });
+    const data = await res.json();
+    if (!data.request_id) throw new Error('Kein Request ID von fal.ai — prüfe deinen Key');
+    r.textContent = 'Video wird verarbeitet (1-2 Min)...';
+    r.style.display = 'block';
+    setSlotStatus(i, 'loading', 'Verarbeitet...');
+
+    let attempts = 0;
+    while (attempts < 40) {
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      const poll = await fetch(`https://queue.fal.run/fal-ai/seedance-v1-lite/requests/${data.request_id}`, {
+        headers: { 'Authorization': 'Key ' + key }
+      });
+      const pd = await poll.json();
+      if (pd.status === 'COMPLETED' && pd.output?.video?.url) {
+        const url = pd.output.video.url;
+        const vid = document.getElementById('vid-' + i);
+        vid.src = url;
+        vid.style.display = 'block';
+        r.innerHTML = `<a href="${url}" target="_blank">🔗 Video öffnen / herunterladen</a>`;
+        const dlBtn = document.getElementById('dl-' + i);
+        dlBtn.href = url;
+        dlBtn.download = 'kiage-video-slot' + (i+1) + '.mp4';
+        dlBtn.style.display = 'block';
+        setSlotStatus(i, 'done', '✓ Fertig');
+        return;
+      }
+      if (pd.status === 'FAILED') throw new Error('fal.ai: Video-Generierung fehlgeschlagen');
+      attempts++;
+    }
+    throw new Error('Timeout — fal.ai hat nicht geantwortet');
+  } catch(e) {
+    setSlotStatus(i, 'error', 'Fehler');
+    r.textContent = e.message;
+    r.style.display = 'block';
+  }
+}
+
+renderMPs();
+renderSlots();
+
+document.getElementById('mp-list').addEventListener('click', function(e) {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const id = btn.dataset.id;
+  if (action === 'activate') activatePreset(id);
+  if (action === 'edit') editPreset(id);
+  if (action === 'delete') deletePreset(id);
+});
+</script>
+</body>
+</html>
