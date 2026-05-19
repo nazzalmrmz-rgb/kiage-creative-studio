@@ -427,6 +427,9 @@ function renderSlots() {
       <img class="slot-img" id="img-${i}" />
       <video class="slot-video" id="vid-${i}" controls></video>
       <a class="dl-btn" id="dl-${i}" download>⬇ Download</a>
+      <button class="make-video-btn" id="mkv-${i}" style="display:none; margin-top:6px; font-size:11px; padding:5px 12px; border-radius:6px; border:1px solid #9B6FDF; background:rgba(155,111,223,0.15); color:#9B6FDF; cursor:pointer; width:fit-content;" onclick="makeVideoFromImage(${i})">🎬 Als Video generieren</button>
+      <div class="slot-result" id="vid-result-${i}" style="display:none; margin-top:6px; font-size:11px;"></div>
+      <video id="vid2-${i}" controls style="display:none; width:100%; border-radius:8px; margin-top:6px;"></video>
     `;
     grid.appendChild(card);
   }
@@ -592,11 +595,82 @@ async function generateImage(i, prompt, key) {
     dlBtn.download = 'kiage-creative-slot' + (i+1) + '.png';
     dlBtn.style.display = 'block';
     setSlotStatus(i, 'done', '✓ Fertig');
+    const mkvBtn = document.getElementById('mkv-' + i);
+    if (mkvBtn) mkvBtn.style.display = 'block';
   } catch(e) {
     setSlotStatus(i, 'error', 'Fehler');
     const r = document.getElementById('result-' + i);
     r.textContent = e.message;
     r.style.display = 'block';
+  }
+}
+
+async function makeVideoFromImage(i) {
+  const falKey = document.getElementById('fal-key').value.trim();
+  if (!falKey) { showError('fal.ai Key fehlt'); return; }
+  const imgEl = document.getElementById('img-' + i);
+  if (!imgEl || !imgEl.src) { showError('Kein Bild vorhanden'); return; }
+  const mkvBtn = document.getElementById('mkv-' + i);
+  mkvBtn.disabled = true;
+  mkvBtn.textContent = '⏳ Wird verarbeitet...';
+  const vidResult = document.getElementById('vid-result-' + i);
+  vidResult.style.display = 'block';
+  vidResult.textContent = 'Bild wird hochgeladen...';
+
+  try {
+    // Upload image to fal.ai storage
+    const b64 = imgEl.src.split(',')[1];
+    const byteString = atob(b64);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let j = 0; j < byteString.length; j++) ia[j] = byteString.charCodeAt(j);
+    const blob = new Blob([ab], { type: 'image/png' });
+    const uploadForm = new FormData();
+    uploadForm.append('file', blob, 'frame.png');
+    const uploadRes = await fetch('https://rest.alpha.fal.ai/storage/upload/file', {
+      method: 'POST',
+      headers: { 'Authorization': 'Key ' + falKey },
+      body: uploadForm
+    });
+    const uploadData = await uploadRes.json();
+    const imageUrl = uploadData.url;
+    if (!imageUrl) throw new Error('Upload fehlgeschlagen: ' + JSON.stringify(uploadData));
+
+    vidResult.textContent = 'Video wird generiert (1-2 Min)...';
+    const prompt = document.getElementById('prompt-' + i).value.trim() || 'Cinematic perfume advertisement, smooth camera movement, luxury atmosphere';
+
+    const res = await fetch('https://queue.fal.run/fal-ai/bytedance/seedance/v1/pro/fast/image-to-video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + falKey },
+      body: JSON.stringify({ prompt, image_url: imageUrl, duration: '5', aspect_ratio: '9:16' })
+    });
+    const data = await res.json();
+    if (!data.request_id) throw new Error('Kein Request ID: ' + JSON.stringify(data));
+
+    let attempts = 0;
+    while (attempts < 40) {
+      await new Promise(r => setTimeout(r, 4000));
+      const poll = await fetch('https://queue.fal.run/fal-ai/bytedance/seedance/v1/pro/fast/image-to-video/requests/' + data.request_id, {
+        headers: { 'Authorization': 'Key ' + falKey }
+      });
+      const pd = await poll.json();
+      if (pd.status === 'COMPLETED' && pd.output?.video?.url) {
+        const url = pd.output.video.url;
+        const vid = document.getElementById('vid2-' + i);
+        vid.src = url;
+        vid.style.display = 'block';
+        vidResult.innerHTML = '<a href="' + url + '" target="_blank">🔗 Video herunterladen</a>';
+        mkvBtn.textContent = '✓ Video fertig';
+        return;
+      }
+      if (pd.status === 'FAILED') throw new Error('Video-Generierung fehlgeschlagen');
+      attempts++;
+    }
+    throw new Error('Timeout');
+  } catch(e) {
+    vidResult.textContent = 'Fehler: ' + e.message;
+    mkvBtn.disabled = false;
+    mkvBtn.textContent = '🎬 Als Video generieren';
   }
 }
 
