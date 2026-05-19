@@ -257,6 +257,15 @@ textarea::placeholder { color: var(--text3); }
       <label>Brand Context (Zielgruppe, Ton, Key Message)</label>
       <textarea id="modal-brand" placeholder="Zielgruppe: Deutsche Männer 25-40, lifestyle-orientiert. Ton: selbstbewusst, luxuriös. Key Message: Gleicher Duft, 90% günstiger. Stets eine echte, attraktive Person in der Szene zeigen..."></textarea>
     </div>
+    <div class="modal-field">
+      <label>Referenzbilder Flakon (bis zu 4 Fotos)</label>
+      <div class="ref-upload" style="padding:10px; margin-bottom:6px;">
+        <input type="file" id="modal-img-input" accept="image/*" multiple />
+        <div style="font-size:20px;">📎</div>
+        <p style="font-size:12px; color:var(--text3); margin-top:4px;">Echte Flakon-Fotos hochladen</p>
+      </div>
+      <div id="modal-thumbs" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+    </div>
     <div class="modal-btns">
       <button class="modal-btn" onclick="closeModal()">Abbrechen</button>
       <button class="modal-btn primary" onclick="savePreset()">Speichern</button>
@@ -266,6 +275,7 @@ textarea::placeholder { color: var(--text3); }
 
 <script>
 let masterprompts = JSON.parse(localStorage.getItem('cs_prompts') || '[]');
+let modalImages = [];
 let activePresetId = null;
 let slotCount = 3;
 let activeType = 'video';
@@ -317,21 +327,58 @@ function deletePreset(id) {
 
 function editPreset(id) {
   editingId = id;
+  modalImages = [];
   const mp = masterprompts.find(m => m.id === id);
   document.getElementById('modal-title').textContent = 'Preset bearbeiten';
   document.getElementById('modal-name').value = mp.name;
   document.getElementById('modal-flakon').value = mp.flakon;
   document.getElementById('modal-brand').value = mp.brand;
+  const thumbs = document.getElementById('modal-thumbs');
+  thumbs.innerHTML = '';
+  if (mp.images) {
+    mp.images.forEach(src => {
+      modalImages.push(src);
+      const img = document.createElement('img');
+      img.src = src;
+      img.className = 'ref-thumb';
+      thumbs.appendChild(img);
+    });
+  }
   document.getElementById('modal').classList.add('open');
+  setTimeout(() => {
+    const inp = document.getElementById('modal-img-input');
+    if (inp) inp.onchange = e => handleModalImages(e.target.files);
+  }, 100);
+}
+
+function handleModalImages(files) {
+  Array.from(files).slice(0, 4).forEach(f => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      if (modalImages.length >= 4) return;
+      modalImages.push(ev.target.result);
+      const img = document.createElement('img');
+      img.src = ev.target.result;
+      img.className = 'ref-thumb';
+      document.getElementById('modal-thumbs').appendChild(img);
+    };
+    reader.readAsDataURL(f);
+  });
 }
 
 function openAddModal() {
   editingId = null;
+  modalImages = [];
+  document.getElementById('modal-thumbs').innerHTML = '';
   document.getElementById('modal-title').textContent = 'Neuer Masterprompt';
   document.getElementById('modal-name').value = '';
   document.getElementById('modal-flakon').value = '';
   document.getElementById('modal-brand').value = '';
   document.getElementById('modal').classList.add('open');
+  setTimeout(() => {
+    const inp = document.getElementById('modal-img-input');
+    if (inp) inp.onchange = e => handleModalImages(e.target.files);
+  }, 100);
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
@@ -344,8 +391,9 @@ function savePreset() {
   if (editingId) {
     const mp = masterprompts.find(m => m.id === editingId);
     mp.name = name; mp.flakon = flakon; mp.brand = brand;
+    if (modalImages.length > 0) mp.images = [...modalImages];
   } else {
-    masterprompts.push({ id: 'mp_' + Date.now(), name, flakon, brand });
+    masterprompts.push({ id: 'mp_' + Date.now(), name, flakon, brand, images: [...modalImages] });
   }
   saveMPs(); renderMPs(); closeModal();
 }
@@ -495,11 +543,36 @@ function setSlotStatus(i, cls, text) {
 async function generateImage(i, prompt, key) {
   setSlotStatus(i, 'loading', 'Generiert...');
   try {
-    const res = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-      body: JSON.stringify({ model: 'gpt-image-1', prompt, n: 1, size: '1024x1536' })
-    });
+    const mp = getActiveMP();
+    const hasRefImages = mp && mp.images && mp.images.length > 0;
+    let res;
+    if (hasRefImages) {
+      // Use images/edits endpoint with reference images
+      const formData = new FormData();
+      formData.append('model', 'gpt-image-1');
+      formData.append('prompt', prompt);
+      formData.append('n', '1');
+      formData.append('size', '1024x1536');
+      // Convert base64 to blob and append
+      const b64 = mp.images[0].split(',')[1];
+      const byteString = atob(b64);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let j = 0; j < byteString.length; j++) ia[j] = byteString.charCodeAt(j);
+      const blob = new Blob([ab], { type: 'image/png' });
+      formData.append('image[]', blob, 'flakon.png');
+      res = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + key },
+        body: formData
+      });
+    } else {
+      res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify({ model: 'gpt-image-1', prompt, n: 1, size: '1024x1536' })
+      });
+    }
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
     const src = 'data:image/png;base64,' + data.data[0].b64_json;
@@ -523,7 +596,7 @@ async function generateVideo(i, prompt, key) {
   setSlotStatus(i, 'loading', 'Gesendet...');
   const r = document.getElementById('result-' + i);
   try {
-    const res = await fetch('https://queue.fal.run/fal-ai/bytedance/seedance/v1/lite/text-to-video', {
+    const res = await fetch('https://queue.fal.run/bytedance/seedance-2.0/text-to-video', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + key },
       body: JSON.stringify({ prompt, duration: '5', aspect_ratio: '9:16', resolution: '720p' })
@@ -537,7 +610,7 @@ async function generateVideo(i, prompt, key) {
     let attempts = 0;
     while (attempts < 40) {
       await new Promise(resolve => setTimeout(resolve, 4000));
-      const poll = await fetch(`https://queue.fal.run/fal-ai/bytedance/seedance/v1/lite/text-to-video/requests/${data.request_id}`, {
+      const poll = await fetch(`https://queue.fal.run/bytedance/seedance-2.0/text-to-video/requests/${data.request_id}`, {
         headers: { 'Authorization': 'Key ' + key }
       });
       const pd = await poll.json();
