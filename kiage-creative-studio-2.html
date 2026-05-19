@@ -549,7 +549,7 @@ async function generateImage(i, prompt, key) {
     if (hasRefImages) {
       // Use images/edits endpoint with reference images
       const formData = new FormData();
-      formData.append('model', 'gpt-image-1');
+      formData.append('model', 'gpt-image-2');
       formData.append('prompt', prompt);
       formData.append('n', '1');
       formData.append('size', '1024x1536');
@@ -570,7 +570,7 @@ async function generateImage(i, prompt, key) {
       res = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-        body: JSON.stringify({ model: 'gpt-image-1', prompt, n: 1, size: '1024x1536' })
+        body: JSON.stringify({ model: 'gpt-image-2', prompt, n: 1, size: '1024x1536' })
       });
     }
     const data = await res.json();
